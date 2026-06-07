@@ -2,8 +2,9 @@
 // ============================================================
 // admin-dashboard.php — Real data from DB
 // ============================================================
-session_start();
-require_once "config/db.php";
+require_once __DIR__ . "/config/session.php";
+tf_session_start_role('admin');
+require_once __DIR__ . "/config/db.php";
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.html"); exit();
@@ -47,20 +48,42 @@ $feedback_result = $conn->query("
 ");
 $feedbacks = $feedback_result->fetch_all(MYSQLI_ASSOC);
 
-// Disputes
-$disputes_result = $conn->query("
-    SELECT d.*,
-           CONCAT(fu.first_name,' ',fu.last_name) AS filed_by_name,
-           CONCAT(au.first_name,' ',au.last_name) AS against_name
-    FROM disputes d
-    JOIN users fu ON d.filed_by = fu.user_id
-    JOIN users au ON d.against = au.user_id
-    ORDER BY d.created_at DESC LIMIT 20
-");
-$disputes = $disputes_result->fetch_all(MYSQLI_ASSOC);
+// Disputes (with booking context for real resolution)
+$disputes = [];
+if (tf_table_exists($conn, 'disputes')) {
+    $has_resolved_by = tf_column_exists($conn, 'disputes', 'resolved_by');
+    $res_join = $has_resolved_by ? "LEFT JOIN users ru ON ru.user_id = d.resolved_by" : "";
+    $res_select = $has_resolved_by
+        ? ", CONCAT(ru.first_name,' ',ru.last_name) AS resolved_by_name"
+        : ", NULL AS resolved_by_name";
+    $sql = "
+        SELECT d.*,
+               CONCAT(fu.first_name,' ',fu.last_name) AS filed_by_name,
+               fu.email AS filed_by_email,
+               CONCAT(au.first_name,' ',au.last_name) AS against_name,
+               au.email AS against_email,
+               b.subject AS booking_subject,
+               b.lesson_date AS booking_lesson_date,
+               b.total_amount AS booking_amount,
+               b.status AS booking_status
+               {$res_select}
+        FROM disputes d
+        JOIN users fu ON d.filed_by = fu.user_id
+        JOIN users au ON d.against = au.user_id
+        LEFT JOIN bookings b ON b.booking_id = d.booking_id
+        {$res_join}
+        ORDER BY (d.status = 'open') DESC, d.created_at DESC
+        LIMIT 40
+    ";
+    $disputes_result = $conn->query($sql);
+    if ($disputes_result) {
+        $disputes = $disputes_result->fetch_all(MYSQLI_ASSOC);
+    }
+}
 
 $success = $_GET['success'] ?? '';
 $error   = $_GET['error']   ?? '';
+$tab     = $_GET['tab'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,10 +100,11 @@ $error   = $_GET['error']   ?? '';
 
 <div id="page-admin-dash" class="page active">
   <nav class="navbar">
-    <div class="navbar-brand" onclick="window.location.href='index.html'">Tutor<span>Find</span></div>
+    <div class="navbar-brand" onclick="window.location.href='admin-dashboard.php'">Tutor<span>Find</span></div>
     <div class="nav-links">
       <a href="admin-dashboard.php" class="active">Admin Panel</a>
-      <a href="actions/logout.php">Log Out</a>
+      <a href="my-profile.php">My profile</a>
+      <a href="actions/logout.php?role=admin">Log Out</a>
     </div>
   </nav>
 
@@ -207,30 +231,84 @@ $error   = $_GET['error']   ?? '';
     <div id="a-dispute" style="display:none;">
       <div class="glass section-card">
         <h3>⚖️ <span>Dispute Resolution</span></h3>
+        <p style="opacity:0.75;font-size:0.9rem;margin-bottom:1rem;">Open cases first. To close a dispute you must record an <strong>outcome</strong> and a clear <strong>written decision</strong> (users see this on their Disputes page).</p>
         <?php if (empty($disputes)): ?>
           <p style="opacity:0.6;">No disputes filed.</p>
         <?php else: ?>
-        <table class="lesson-table">
-          <tr><th>ID</th><th>Filed By</th><th>Against</th><th>Issue</th><th>Status</th><th>Action</th></tr>
+          <?php
+          $outcome_labels = [
+              'refund_student' => 'Refund / compensation to student side',
+              'credit_lesson' => 'Lesson credit or reschedule',
+              'warn_party' => 'Warning or behaviour notice to a party',
+              'no_action' => 'No further action (case dismissed)',
+              'escalate_partner' => 'Escalated externally (bank / gateway)',
+              'other' => 'Other (explain in note)',
+          ];
+          ?>
           <?php foreach ($disputes as $d): ?>
-          <tr>
-            <td>#<?= $d['dispute_id'] ?></td>
-            <td><?= htmlspecialchars($d['filed_by_name']) ?></td>
-            <td><?= htmlspecialchars($d['against_name']) ?></td>
-            <td><?= htmlspecialchars(substr($d['issue'], 0, 60)) ?>...</td>
-            <td><span class="status-badge status-<?= $d['status'] === 'open' ? 'pending' : 'confirmed' ?>"><?= ucfirst($d['status']) ?></span></td>
-            <td>
-              <?php if ($d['status'] === 'open'): ?>
-              <form method="POST" action="actions/admin-action.php" style="display:inline;">
-                <input type="hidden" name="dispute_id" value="<?= $d['dispute_id'] ?>">
-                <input type="hidden" name="action" value="resolve_dispute">
-                <button type="submit" class="btn btn-primary btn-sm">Resolve</button>
+          <details style="border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:0.75rem 1rem;margin-bottom:0.85rem;background:rgba(0,0,0,0.12);" <?= $d['status'] === 'open' ? 'open' : '' ?>>
+            <summary style="cursor:pointer;font-weight:800;list-style-position:outside;">
+              #<?= (int)$d['dispute_id'] ?> · <?= htmlspecialchars($d['filed_by_name']) ?> vs <?= htmlspecialchars($d['against_name']) ?>
+              <span class="status-badge status-<?= $d['status'] === 'open' ? 'pending' : 'confirmed' ?>" style="margin-left:0.35rem;"><?= ucfirst($d['status']) ?></span>
+            </summary>
+            <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.08);font-size:0.92rem;">
+              <p style="margin:0 0 0.5rem;"><strong>Booking</strong> #<?= (int)$d['booking_id'] ?>
+                <?php if (!empty($d['booking_subject'])): ?>
+                  · <?= htmlspecialchars($d['booking_subject']) ?>
+                  · <?= !empty($d['booking_lesson_date']) ? date('d M Y', strtotime($d['booking_lesson_date'])) : '—' ?>
+                  · <?= !empty($d['booking_amount']) ? 'RM ' . number_format((float)$d['booking_amount'], 2) : '—' ?>
+                  · <?= htmlspecialchars(ucfirst($d['booking_status'] ?? '')) ?>
+                <?php endif; ?>
+              </p>
+              <p style="margin:0 0 0.35rem;"><strong>Filed by</strong> <?= htmlspecialchars($d['filed_by_name']) ?> &lt;<?= htmlspecialchars($d['filed_by_email'] ?? '') ?>&gt;</p>
+              <p style="margin:0 0 0.75rem;"><strong>Against</strong> <?= htmlspecialchars($d['against_name']) ?> &lt;<?= htmlspecialchars($d['against_email'] ?? '') ?>&gt;</p>
+              <p style="margin:0 0 0.35rem;"><strong>Issue reported</strong></p>
+              <div style="white-space:pre-wrap;opacity:0.92;padding:0.65rem;background:rgba(0,0,0,0.2);border-radius:8px;margin-bottom:0.75rem;"><?= htmlspecialchars($d['issue']) ?></div>
+
+              <?php if ($d['status'] === 'resolved'): ?>
+                <?php if (!empty($d['admin_resolution_note']) || !empty($d['resolution_outcome'])): ?>
+                <p style="margin:0 0 0.25rem;"><strong>Outcome</strong> <?= htmlspecialchars($outcome_labels[$d['resolution_outcome'] ?? ''] ?? ($d['resolution_outcome'] ?? '—')) ?></p>
+                <p style="margin:0 0 0.25rem;"><strong>Admin decision</strong></p>
+                <div style="white-space:pre-wrap;opacity:0.92;padding:0.65rem;background:rgba(46,196,182,0.1);border-radius:8px;border:1px solid rgba(46,196,182,0.25);"><?= htmlspecialchars($d['admin_resolution_note'] ?? '—') ?></div>
+                <p style="opacity:0.65;font-size:0.82rem;margin-top:0.5rem;">
+                  Resolved <?= !empty($d['resolved_at']) ? date('d M Y g:i A', strtotime($d['resolved_at'])) : '—' ?>
+                  <?php if (!empty($d['resolved_by_name'])): ?> · <?= htmlspecialchars($d['resolved_by_name']) ?><?php endif; ?>
+                </p>
+                <?php else: ?>
+                <p style="opacity:0.75;margin:0;">Marked resolved before written decisions were required. Future cases will show full outcome and notes here.</p>
+                <?php endif; ?>
+              <?php else: ?>
+                <?php if (tf_column_exists($conn, 'disputes', 'admin_resolution_note')): ?>
+                <form method="POST" action="actions/admin-action.php" style="max-width:640px;">
+                  <input type="hidden" name="action" value="resolve_dispute">
+                  <input type="hidden" name="dispute_id" value="<?= (int)$d['dispute_id'] ?>">
+                  <div class="form-group">
+                    <label>Resolution outcome</label>
+                    <select name="resolution_outcome" required>
+                      <?php foreach ($outcome_labels as $val => $lbl): ?>
+                        <option value="<?= htmlspecialchars($val) ?>"><?= htmlspecialchars($lbl) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Written decision (visible to both parties)</label>
+                    <textarea name="admin_resolution_note" rows="5" minlength="15" maxlength="4000" required placeholder="Summarise findings, what you decided, and any next steps (e.g. manual refund, warning issued, case closed). Minimum 15 characters."></textarea>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Resolve this dispute and publish the decision to the users?');">Publish resolution &amp; close case</button>
+                </form>
+                <?php else: ?>
+                  <p class="alert alert-error" style="margin:0;">Run <code>database_migration.sql</code> to add dispute resolution columns.</p>
+                <?php endif; ?>
+              <?php endif; ?>
+              <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:1rem 0;">
+              <form method="POST" action="actions/admin-action.php" style="display:inline;" onsubmit="return confirm('Permanently delete this dispute? This cannot be undone.');">
+                <input type="hidden" name="action" value="delete_dispute">
+                <input type="hidden" name="dispute_id" value="<?= (int)$d['dispute_id'] ?>">
+                <button type="submit" class="btn btn-danger btn-sm">Delete dispute</button>
               </form>
-              <?php else: ?>—<?php endif; ?>
-            </td>
-          </tr>
+            </div>
+          </details>
           <?php endforeach; ?>
-        </table>
         <?php endif; ?>
       </div>
     </div>
@@ -251,6 +329,13 @@ function adminTab(btn, id) {
   btn.classList.add('active');
   document.getElementById(id).style.display = 'block';
 }
+document.addEventListener('DOMContentLoaded', function() {
+  const tab = <?= json_encode($tab) ?>;
+  if (tab === 'dispute') {
+    const btn = document.querySelector('.tab-btn[onclick*="a-dispute"]');
+    if (btn) adminTab(btn, 'a-dispute');
+  }
+});
 </script>
 </body>
 </html>

@@ -97,8 +97,9 @@
 
         <!-- PARENT EXTRA -->
         <div class="form-group" id="parent-extra" style="display:none;">
-          <label>Child's Name (optional)</label>
-          <input type="text" name="child_name" placeholder="Enter child's full name">
+          <label>Link to your child's account</label>
+          <p style="font-size:0.82rem;opacity:0.7;margin:0 0 0.6rem;">Enter the <strong>same email</strong> the student used when they signed up as a <strong>Student</strong>. The child account must exist before you register as parent.</p>
+          <input type="email" name="child_email" placeholder="Child's student account email" autocomplete="email">
         </div>
 
         <!-- BUTTON -->
@@ -137,6 +138,15 @@ if (params.get('error')) {
 }
 if (params.get('success')) {
   flashEl.innerHTML = `<div class="alert alert-success" style="margin-bottom:1rem;">${params.get('success')}</div>`;
+}
+
+const preselectRole = params.get('role');
+if (['student', 'parent', 'tutor'].includes(preselectRole)) {
+  const roleInput = document.getElementById(`r-${preselectRole}`);
+  if (roleInput) {
+    roleInput.checked = true;
+    roleInput.dispatchEvent(new Event('change'));
+  }
 }
 </script>
 </body>
