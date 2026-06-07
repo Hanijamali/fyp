@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutorFind</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+
+<!-- ==================== PAGE: BOOK LESSON ==================== -->
+<div id="page-book" class="page active">
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="showPage('home')">Tutor<span>Find</span></div>
+    <div class="nav-links">
+      <a onclick="showPage('search')">Back to Search</a>
+    </div>
+  </nav>
+  <div class="page-content" style="max-width:700px;">
+    <div class="page-header">
+      <h2>Book a <span>Lesson</span></h2>
+      <p>Schedule a session with your chosen tutor</p>
+    </div>
+    <div class="glass" style="padding:2rem;color:white;margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;">
+        <div class="tutor-avatar" id="book-avatar">👩‍🏫</div>
+        <div>
+          <div style="font-weight:900;font-size:1.15rem;" id="book-name">Select a tutor first</div>
+          <div style="color:var(--teal);font-size:0.88rem;" id="book-subject">Subject</div>
+          <div style="color:var(--amber);font-weight:700;" id="book-rate">RM --/hr</div>
+        </div>
+      </div>
+      <div id="book-alert"></div>
+      <div class="form-group"><label>Lesson Subject</label><select id="book-subject-sel"><option>Mathematics</option><option>Additional Mathematics</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>English Language</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Preferred Date</label><input type="date" id="book-date" name="lesson_date" required></div>
+        <div class="form-group"><label>Preferred Time</label><select><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option></select></div>
+      </div>
+      <div class="form-group"><label>Duration</label><select><option>1 hour</option><option>1.5 hours</option><option>2 hours</option></select></div>
+      <div class="form-group"><label>Notes (optional)</label><textarea rows="3" name="notes" placeholder="Add lesson topics or learning requirements (optional)"></textarea></div>
+      <div style="background:rgba(46,196,182,0.08);border:1px solid rgba(46,196,182,0.2);border-radius:10px;padding:1rem;margin-bottom:1.2rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:0.4rem;"><span>Rate</span><span id="calc-rate">RM 80/hr</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;margin-bottom:0.4rem;"><span>Duration</span><span>1 hour</span></div>
+        <hr class="divider">
+        <div style="display:flex;justify-content:space-between;font-weight:900;font-size:1.05rem;"><span>Total</span><span style="color:var(--teal);" id="calc-total">RM 80</span></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="confirmBooking()">🗓️ Confirm Booking</button>
+    </div>
+  </div>
+  <footer><strong>TutorFind</strong> — Multimedia University Malaysia © 2026</footer>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

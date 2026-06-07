@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutorFind</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+
+<!-- ==================== PAGE: HOME ==================== -->
+<div id="page-home" class="page active">
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="showPage('home')">Tutor<span>Find</span></div>
+    <div class="nav-links">
+      <a onclick="showPage('search')">Find Tutors</a>
+      <a onclick="showPage('login')">Log In</a>
+      <a class="nav-cta" onclick="showPage('signup')">Sign Up Free</a>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="hero-text">
+     
+      <h1>Online Private Tutor <span>Finding</span> & Learning</h1>
+      <p>Connect students with expert private tutors. Track academic progress, book lessons, and achieve learning goals — all in one centralized platform.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="showPage('search')">🔍 Find a Tutor</button>
+        <button class="btn btn-outline" onclick="showPage('signup')">📝 Register Now</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">250+</div>
+          <div class="stat-label">Expert Tutors</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">1,200+</div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">40+</div>
+          <div class="stat-label">Subjects</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-card-wrap">
+      <div class="glass hero-card">
+        <h3>🎓 Join as...</h3>
+        <div class="role-grid">
+          <div class="role-btn" onclick="showSignup('student')">
+            <span class="role-icon">👨‍🎓</span>
+            <span>Student</span>
+          </div>
+          <div class="role-btn" onclick="showSignup('parent')">
+            <span class="role-icon">👪</span>
+            <span>Parent</span>
+          </div>
+          <div class="role-btn" onclick="showSignup('tutor')">
+            <span class="role-icon">👩‍🏫</span>
+            <span>Tutor</span>
+          </div>
+          <div class="role-btn" onclick="showPage('login')">
+            <span class="role-icon">🔐</span>
+            <span>Login</span>
+          </div>
+        </div>
+        <hr class="divider" style="margin: 1.2rem 0;">
+        <div style="font-size:0.82rem; opacity:0.6; text-align:center; margin-bottom:0.8rem;">How it works</div>
+        <div style="display:flex;flex-direction:column;gap:0.6rem;">
+          <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.88rem;">
+            <span style="color:var(--teal);font-weight:900;">1.</span> Create your account
+          </div>
+          <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.88rem;">
+            <span style="color:var(--teal);font-weight:900;">2.</span> Search & book a tutor
+          </div>
+          <div style="display:flex;align-items:center;gap:0.7rem;font-size:0.88rem;">
+            <span style="color:var(--teal);font-weight:900;">3.</span> Track your progress
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer><strong>TutorFind</strong> — Online Private Tutor Finding & Learning Progress System | FYP P370 | Multimedia University Malaysia © 2026</footer>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

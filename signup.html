@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up - TutorFind</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="bg-layer"></div>
+<div class="bg-overlay"></div>
+
+<div id="page-signup" class="page active">
+
+  <nav class="navbar">
+    <div class="navbar-brand" onclick="window.location.href='index.html'">Tutor<span>Find</span></div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="login.html">Log In</a>
+    </div>
+  </nav>
+
+  <div class="page-content" style="display:flex;align-items:center;justify-content:center;">
+    <div style="width:100%;max-width:520px;">
+
+      <div class="page-header" style="text-align:center;">
+        <h2>Create <span>Account</span></h2>
+        <p>Join our learning community today</p>
+      </div>
+
+      <!-- Flash messages -->
+      <div id="flash-msg"></div>
+
+      <form class="glass form-card" action="actions/register.php" method="POST" style="max-width:100%;">
+
+        <!-- ROLE -->
+        <div class="form-group">
+          <label>I am registering as</label>
+          <div class="radio-toggle">
+            <input type="radio" id="r-student" name="role" value="student" checked>
+            <label for="r-student">👨‍🎓 Student</label>
+
+            <input type="radio" id="r-parent" name="role" value="parent">
+            <label for="r-parent">👪 Parent</label>
+
+            <input type="radio" id="r-tutor" name="role" value="tutor">
+            <label for="r-tutor">👩‍🏫 Tutor</label>
+          </div>
+        </div>
+
+        <!-- NAME -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" name="first_name" placeholder="Enter first name" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" name="last_name" placeholder="Enter last name" required>
+          </div>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" name="email" placeholder="Enter email address" required>
+        </div>
+
+        <!-- PASSWORD -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Minimum 8 characters" required>
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" name="confirm_password" placeholder="Confirm password" required>
+          </div>
+        </div>
+
+        <!-- TUTOR EXTRA -->
+        <div class="form-group" id="tutor-extra" style="display:none;">
+          <label>Subject Specialization</label>
+          <select name="subject">
+            <option>Mathematics</option>
+            <option>Physics</option>
+            <option>Chemistry</option>
+            <option>Biology</option>
+            <option>English Language</option>
+            <option>Bahasa Malaysia</option>
+            <option>Computer Science</option>
+            <option>Additional Mathematics</option>
+          </select>
+        </div>
+
+        <!-- PARENT EXTRA -->
+        <div class="form-group" id="parent-extra" style="display:none;">
+          <label>Child's Name (optional)</label>
+          <input type="text" name="child_name" placeholder="Enter child's full name">
+        </div>
+
+        <!-- BUTTON -->
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:0.5rem;">
+          🚀 Create Account
+        </button>
+
+        <div class="form-footer">
+          Already have an account?
+          <a class="form-link" href="login.html">Log In</a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <footer><strong>TutorFind</strong> — Multimedia University Malaysia © 2026</footer>
+
+</div>
+
+<script>
+// Role toggle
+document.querySelectorAll('input[name="role"]').forEach(r => {
+  r.addEventListener('change', function() {
+    document.getElementById('tutor-extra').style.display  = this.value === 'tutor'  ? 'block' : 'none';
+    document.getElementById('parent-extra').style.display = this.value === 'parent' ? 'block' : 'none';
+  });
+});
+
+// Flash messages from URL
+const params = new URLSearchParams(window.location.search);
+const flashEl = document.getElementById('flash-msg');
+if (params.get('error')) {
+  flashEl.innerHTML = `<div class="alert alert-error" style="margin-bottom:1rem;">${params.get('error')}</div>`;
+}
+if (params.get('success')) {
+  flashEl.innerHTML = `<div class="alert alert-success" style="margin-bottom:1rem;">${params.get('success')}</div>`;
+}
+</script>
+</body>
+</html>
