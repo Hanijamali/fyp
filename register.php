@@ -2,7 +2,7 @@
 // ============================================================
 // actions/register.php — Signup Handler (Secure)
 // ============================================================
-session_start();
+require_once __DIR__ . "/../config/session.php";
 include __DIR__ . "/../config/db.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
@@ -44,6 +44,43 @@ if ($check->num_rows > 0) {
 }
 $check->close();
 
+// Parent signup: optionally link child account (must validate before creating parent row)
+$child_student_id_for_link = null;
+if ($role === 'parent') {
+    $child_email = trim($_POST['child_email'] ?? '');
+    if ($child_email !== '') {
+        if (!filter_var($child_email, FILTER_VALIDATE_EMAIL)) {
+            header("Location: ../signup.html?error=" . urlencode("Invalid child email address."));
+            exit();
+        }
+        if (strcasecmp($child_email, $email) === 0) {
+            header("Location: ../signup.html?error=" . urlencode("Child email cannot be the same as your parent email."));
+            exit();
+        }
+
+        $ps_table = $conn->query("SHOW TABLES LIKE 'parent_students'");
+        if (!$ps_table || $ps_table->num_rows === 0) {
+            header("Location: ../signup.html?error=" . urlencode("Database is missing parent_students table. Run database_migration.sql in phpMyAdmin, then try again."));
+            exit();
+        }
+
+        $cs = $conn->prepare("SELECT user_id FROM users WHERE email = ? AND role = 'student' LIMIT 1");
+        $cs->bind_param("s", $child_email);
+        $cs->execute();
+        $cs->store_result();
+        if ($cs->num_rows !== 1) {
+            $cs->close();
+            header("Location: ../signup.html?error=" . urlencode("No student account exists for that child email yet. Ask your child to sign up as Student first, then register as Parent."));
+            exit();
+        }
+
+        $child_student_id_for_link = 0;
+        $cs->bind_result($child_student_id_for_link);
+        $cs->fetch();
+        $cs->close();
+    }
+}
+
 // --- Insert user (prepared statement) ---
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -61,6 +98,14 @@ if ($stmt->execute()) {
         $tp->bind_param("is", $new_user_id, $subject);
         $tp->execute();
         $tp->close();
+    }
+
+    // If parent, link validated student row
+    if ($role === 'parent' && $child_student_id_for_link !== null) {
+        $lnk = $conn->prepare("INSERT IGNORE INTO parent_students (parent_id, student_id) VALUES (?, ?)");
+        $lnk->bind_param("ii", $new_user_id, $child_student_id_for_link);
+        $lnk->execute();
+        $lnk->close();
     }
 
     header("Location: ../login.html?success=" . urlencode("Account created! Please log in."));

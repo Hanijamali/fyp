@@ -2,12 +2,18 @@
 // ============================================================
 // config/db.php — Database Connection
 // ============================================================
-$host     = "localhost";
-$user     = "root";
-$password = "";
-$database = "tutorfind_db";
+$host     = getenv('DB_HOST') ?: getenv('MYSQLHOST') ?: 'localhost';
+$user     = getenv('DB_USER') ?: getenv('MYSQLUSER') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: getenv('MYSQLPASSWORD') ?: '';
+$database = getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'tutorfind_db';
+$port     = (int) (getenv('DB_PORT') ?: getenv('MYSQLPORT') ?: 3306);
 
-$conn = mysqli_connect($host, $user, $password, $database);
+// Hosting (InfinityFree, etc.): copy config/db.local.php.example → config/db.local.php
+if (is_readable(__DIR__ . '/db.local.php')) {
+    require __DIR__ . '/db.local.php';
+}
+
+$conn = mysqli_connect($host, $user, $password, $database, $port);
 
 if (!$conn) {
     die("Database connection failed: " . mysqli_connect_error());

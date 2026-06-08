@@ -2,7 +2,8 @@
 // ============================================================
 // actions/submit-feedback.php
 // ============================================================
-session_start();
+require_once __DIR__ . "/../config/session.php";
+tf_session_start_role('student');
 require_once __DIR__ . "/../config/db.php";
 
 if (!isset($_SESSION['user_id'])) {

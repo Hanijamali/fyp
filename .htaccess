@@ -1,1 +1,4 @@
-Require all denied
+# Block PHP execution in profile uploads
+<FilesMatch "\.(php|phtml|php5|phar)$">
+  Require all denied
+</FilesMatch>

@@ -1,62 +1,80 @@
 <?php
-// ============================================================
-// actions/login-action.php — Login Handler (Secure)
-// ============================================================
-session_start();
+require_once __DIR__ . "/../config/session.php";
 require_once __DIR__ . "/../config/db.php";
-
+ 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: ../login.html");
     exit();
 }
-
+ 
 $email    = trim($_POST['email']    ?? '');
 $password = $_POST['password'] ?? '';
-
+ 
 if (empty($email) || empty($password)) {
     header("Location: ../login.html?error=" . urlencode("Please enter your email and password."));
     exit();
 }
+ 
+// Some local databases may not have the `status` column yet.
+// Detect schema first to avoid SQL exceptions on missing columns.
+$status_col_result = $conn->query("SHOW COLUMNS FROM users LIKE 'status'");
+$has_status_column = $status_col_result && $status_col_result->num_rows > 0;
 
-// --- Fetch user by email (prepared statement) ---
-$stmt = $conn->prepare("SELECT user_id, first_name, last_name, email, password, role, status FROM users WHERE email = ?");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
+$sql = $has_status_column
+    ? "SELECT user_id, first_name, last_name, email, password, role, status FROM users WHERE email = ?"
+    : "SELECT user_id, first_name, last_name, email, password, role FROM users WHERE email = ?";
 
-if ($result->num_rows === 1) {
-    $user = $result->fetch_assoc();
-    $stmt->close();
+$stmt = $conn->prepare($sql);
 
-    // Check account status
-    if ($user['status'] === 'suspended') {
-        header("Location: ../login.html?error=" . urlencode("Your account has been suspended. Contact support."));
-        exit();
-    }
+if ($stmt) {
+    $stmt->bind_param("s", $email);
 
-    // Verify password
-    if (password_verify($password, $user['password'])) {
-        // Start session
-        session_regenerate_id(true);
-        $_SESSION['user_id']    = $user['user_id'];
-        $_SESSION['first_name'] = $user['first_name'];
-        $_SESSION['last_name']  = $user['last_name'];
-        $_SESSION['email']      = $user['email'];
-        $_SESSION['role']       = $user['role'];
+    if ($stmt->execute()) {
+        $stmt->store_result();
 
-        // Redirect based on role
-        switch ($user['role']) {
-            case 'student': header("Location: ../student-dashboard.php"); break;
-            case 'parent':  header("Location: ../parent-dashboard.php");  break;
-            case 'tutor':   header("Location: ../tutor-dashboard.php");   break;
-            case 'admin':   header("Location: ../admin-dashboard.php");   break;
-            default:        header("Location: ../index.html");
+        if ($stmt->num_rows === 1) {
+            if ($has_status_column) {
+                $stmt->bind_result($user_id, $first_name, $last_name, $user_email, $hashed_password, $role, $status);
+            } else {
+                $stmt->bind_result($user_id, $first_name, $last_name, $user_email, $hashed_password, $role);
+                $status = 'active';
+            }
+
+            $stmt->fetch();
+
+            if ($status === 'suspended') {
+                header("Location: ../login.html?error=" . urlencode("Your account has been suspended."));
+                exit();
+            }
+
+            if (password_verify($password, $hashed_password)) {
+                tf_session_start_role($role);
+                session_regenerate_id(true);
+                $_SESSION['user_id']    = $user_id;
+                $_SESSION['first_name'] = $first_name;
+                $_SESSION['last_name']  = $last_name;
+                $_SESSION['email']      = $user_email;
+                $_SESSION['role']       = $role;
+
+                if ($role === 'student') {
+                    header("Location: ../student-dashboard.php");
+                } elseif ($role === 'parent') {
+                    header("Location: ../parent-dashboard.php");
+                } elseif ($role === 'tutor') {
+                    header("Location: ../tutor-dashboard.php");
+                } elseif ($role === 'admin') {
+                    header("Location: ../admin-dashboard.php");
+                } else {
+                    header("Location: ../index.html");
+                }
+                exit();
+            }
         }
-        exit();
     }
+
+    $stmt->close();
 }
 
-// Invalid credentials
 header("Location: ../login.html?error=" . urlencode("Invalid email or password. Please try again."));
 exit();
 ?>

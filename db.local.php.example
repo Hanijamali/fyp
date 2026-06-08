@@ -1,0 +1,10 @@
+<?php
+/**
+ * InfinityFree / shared hosting — copy this file to db.local.php and fill in
+ * the MySQL details from your hosting control panel (MySQL Databases).
+ */
+$host     = 'sql123.infinityfree.com';
+$user     = 'epiz_12345678';
+$password = 'your_mysql_password';
+$database = 'epiz_12345678_tutorfind';
+$port     = 3306;
